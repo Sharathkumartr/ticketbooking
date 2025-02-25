@@ -1,0 +1,18 @@
+{
+  "name": "museum-ticket-booking",
+  "version": "1.0.0",
+  "description": "Interactive Museum Ticket Booking Platform",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev",
+    "build": "echo 'No build step required'",
+    "prepare": "cd backend && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/museum-ticket-booking.git"
+  },
+  "keywords": ["museum", "ticket", "booking", "razorpay"],
+  "author": "Your Name",
+  "license": "MIT"
+} 
