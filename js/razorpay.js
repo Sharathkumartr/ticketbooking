@@ -1,37 +1,35 @@
 window.initiateRazorpayPayment = function(bookingDetails) {
-    // Use environment variable for backend URL
-    const backendUrl = process.env.BACKEND_URL || 'https://your-vercel-backend-url.vercel.app/save-booking';
+    // Determine backend URL based on environment
+    const backendUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000/save-booking'
+        : '/save-booking';
 
     const options = {
-        key: process.env.RAZORPAY_KEY_ID || 'rzp_test_IfggTisNgOf3gq',
-        amount: bookingDetails.totalAmount * 100,
+        key: 'rzp_test_IfggTisNgOf3gq', // Razorpay test key
+        amount: bookingDetails.totalAmount * 100, // Amount in paise
         currency: 'INR',
         name: 'Museum Ticket Booking',
         description: `Booking ${bookingDetails.tickets} tickets for ${bookingDetails.event}`,
-        handler: async function (response) {
-            try {
-                const paymentResponse = await fetch(backendUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${process.env.API_SECRET}`
-                    },
-                    body: JSON.stringify({
-                        ...bookingDetails,
-                        paymentId: response.razorpay_payment_id
-                    })
-                });
-
-                const data = await paymentResponse.json();
-
+        handler: function (response) {
+            // Payment successful, send details to backend
+            fetch(backendUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...bookingDetails,
+                    paymentId: response.razorpay_payment_id
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
                 if (data.success) {
+                    // Add booking ID to the booking details
                     bookingDetails.bookingId = data.bookingId;
                     
-                    // Generate ticket with additional security
-                    TicketGenerator.generateTicket({
-                        ...bookingDetails,
-                        secureHash: data.secureHash // Server-generated secure hash
-                    });
+                    // Show ticket with QR code
+                    TicketGenerator.generateTicket(bookingDetails);
 
                     window.ticketBookingChat.addBotMessage(`
 🎉 Booking Successful! 🎉
@@ -40,36 +38,26 @@ Event: ${bookingDetails.event}
 Tickets: ${bookingDetails.tickets}
 Total Amount: ₹${bookingDetails.totalAmount}
 Ticket ID: ${data.bookingId}
-Payment Verification: ✅ Confirmed`);
+Payment ID: ${response.razorpay_payment_id}
+
+Your ticket has been generated. Click 'Print Ticket' to view and print.`);
                 } else {
-                    throw new Error(data.message || 'Booking verification failed');
+                    window.ticketBookingChat.addBotMessage('Booking failed. Please try again.');
                 }
-            } catch (error) {
-                console.error('Booking Verification Error:', error);
-                window.ticketBookingChat.addBotMessage(`
-❌ Booking Error
-Reason: ${error.message}
-Please contact support with your payment ID.`);
-            }
+            })
+            .catch(error => {
+                console.error('Booking save error:', error);
+                window.ticketBookingChat.addBotMessage('An error occurred during booking. Please try again.');
+            });
         },
         prefill: {
             name: bookingDetails.name,
-            email: bookingDetails.email,
-            contact: bookingDetails.phone || ''
-        },
-        notes: {
-            event_id: bookingDetails.eventId
+            email: bookingDetails.email
         },
         theme: {
-            color: process.env.THEME_COLOR || '#3182ce'
-        },
-        modal: {
-            ondismiss: function() {
-                window.ticketBookingChat.addBotMessage('Payment process was cancelled. No charges applied.');
-            }
+            color: '#3182ce' // Blue accent color
         }
     };
-
     const rzp = new Razorpay(options);
     rzp.open();
 }; 

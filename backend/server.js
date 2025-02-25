@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '.env' }); // Explicitly specify path
+require('dotenv').config({ path: '.env' });
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
@@ -9,63 +9,35 @@ const crypto = require('crypto');
 const app = express();
 
 // Middleware
-app.use(cors()); // Enable CORS for all routes
+app.use(cors({
+    origin: ['http://localhost:3000', 'https://your-vercel-domain.vercel.app'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(bodyParser.json());
 
-// Serve static files from the frontend directory
+// Serve static files
 app.use(express.static(path.join(__dirname, '../')));
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://admin:admin@ticketcluster.5od73.mongodb.net/?retryWrites=true&w=majority&appName=TicketCluster';
 
-// Validate MongoDB URI
-if (!MONGODB_URI) {
-    console.error('ERROR: MongoDB URI is not defined in .env file');
-    process.exit(1);
-}
-
-// Improved MongoDB Connection
 mongoose.connect(MONGODB_URI, { 
     useNewUrlParser: true, 
     useUnifiedTopology: true 
 })
-.then(() => {
-    console.log('MongoDB Connected Successfully');
-})
+.then(() => console.log('MongoDB Connected Successfully'))
 .catch((err) => {
     console.error('MongoDB Connection Error:', err);
     process.exit(1);
 });
 
-// Enhanced CORS Configuration
-const corsOptions = {
-    origin: process.env.ALLOWED_ORIGINS.split(','),
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-};
-app.use(cors(corsOptions));
-
-// Middleware for API Authentication
-const authenticateRequest = (req, res, next) => {
-    const apiSecret = req.headers.authorization;
-    if (!apiSecret || apiSecret !== `Bearer ${process.env.API_SECRET}`) {
-        return res.status(401).json({ 
-            success: false, 
-            message: 'Unauthorized Access' 
-        });
-    }
-    next();
-};
-
-// Booking Schema with Enhanced Validation
+// Booking Schema
 const BookingSchema = new mongoose.Schema({
     email: { 
         type: String, 
         required: true, 
-        trim: true, 
-        lowercase: true,
-        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
+        trim: true 
     },
     event: { 
         type: String, 
@@ -102,17 +74,13 @@ const BookingSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true
-    },
-    secureHash: {
-        type: String,
-        required: true
     }
 });
 
 const Booking = mongoose.model('Booking', BookingSchema);
 
-// Secure Booking Endpoint
-app.post('/save-booking', authenticateRequest, async (req, res) => {
+// Booking Endpoint
+app.post('/save-booking', async (req, res) => {
     try {
         const bookingData = req.body;
         
@@ -127,25 +95,13 @@ app.post('/save-booking', authenticateRequest, async (req, res) => {
             }
         }
 
-        // Generate Secure Hash
-        const secureHash = crypto
-            .createHash('sha256')
-            .update(`${bookingData.email}${bookingData.event}${bookingData.paymentId}`)
-            .digest('hex');
-
-        const newBooking = new Booking({
-            ...bookingData,
-            secureHash,
-            bookingDate: new Date()
-        });
-
+        const newBooking = new Booking(bookingData);
         await newBooking.save();
         
         res.status(201).json({ 
             success: true, 
             message: 'Booking saved successfully',
-            bookingId: newBooking._id,
-            secureHash: secureHash
+            bookingId: newBooking._id
         });
     } catch (error) {
         console.error('Booking Save Error:', error);
@@ -157,7 +113,7 @@ app.post('/save-booking', authenticateRequest, async (req, res) => {
     }
 });
 
-// Root route to serve index.html
+// Root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../index.html'));
 });
@@ -170,27 +126,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
-});
-
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-    await mongoose.connection.close();
-    server.close(() => {
-        console.log('Server and MongoDB connection closed');
-        process.exit(0);
-    });
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 }); 
