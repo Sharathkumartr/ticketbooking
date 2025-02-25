@@ -20,13 +20,18 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '../')));
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://admin:admin@ticketcluster.5od73.mongodb.net/?retryWrites=true&w=majority&appName=TicketCluster';
+const MONGODB_URI = process.env.MONGODB_URI || 
+    'mongodb+srv://admin:admin@ticketcluster.5od73.mongodb.net/?retryWrites=true&w=majority&appName=TicketCluster';
+
+console.log('Connecting to MongoDB with URI:', MONGODB_URI);
 
 mongoose.connect(MONGODB_URI, { 
     useNewUrlParser: true, 
     useUnifiedTopology: true 
 })
-.then(() => console.log('MongoDB Connected Successfully'))
+.then(() => {
+    console.log('MongoDB Connected Successfully');
+})
 .catch((err) => {
     console.error('MongoDB Connection Error:', err);
     process.exit(1);

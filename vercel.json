@@ -21,10 +21,9 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "RAZORPAY_KEY_ID": "@razorpay_key_id",
-    "RAZORPAY_KEY_SECRET": "@razorpay_key_secret",
-    "API_SECRET": "@api_secret",
-    "ALLOWED_ORIGINS": "@allowed_origins"
+    "MONGODB_URI": "mongodb+srv://admin:admin@ticketcluster.5od73.mongodb.net/?retryWrites=true&w=majority&appName=TicketCluster",
+    "RAZORPAY_KEY_ID": "rzp_test_IfggTisNgOf3gq",
+    "RAZORPAY_KEY_SECRET": "3R30V5l4fr15x5BayAxlDzla",
+    "PORT": "3000"
   }
 } 
