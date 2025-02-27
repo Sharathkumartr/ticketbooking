@@ -140,8 +140,8 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 For questions or feedback, feel free to reach out:
 
 - **Email**: guggarivijay016@gmail.com
-- **GitHub**: [@yourusername](https://github.com/vijaykmr18)
-- **LinkedIn**: [Your LinkedIn Profile](https://www.linkedin.com/in/vijay-guggari)
+- **GitHub**: [@vijaykmr18](https://github.com/vijaykmr18)
+- **LinkedIn**: [vijay-guggari](https://www.linkedin.com/in/vijay-guggari)
 
 
 ## 🌐 Live Demo
