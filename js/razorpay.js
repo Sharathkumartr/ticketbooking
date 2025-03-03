@@ -1,18 +1,13 @@
 window.initiateRazorpayPayment = function(bookingDetails) {
-    // Determine backend URL based on environment
-    const backendUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3000/save-booking'
-        : '/save-booking';
-
     const options = {
         key: 'rzp_test_IfggTisNgOf3gq', // Razorpay test key
         amount: bookingDetails.totalAmount * 100, // Amount in paise
         currency: 'INR',
-        name: 'Museum Ticket Booking',
+        name: 'Ticket Booking Platform',
         description: `Booking ${bookingDetails.tickets} tickets for ${bookingDetails.event}`,
         handler: function (response) {
             // Payment successful, send details to backend
-            fetch(backendUrl, {
+            fetch('http://localhost:3000/save-booking', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

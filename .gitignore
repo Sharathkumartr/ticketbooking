@@ -10,13 +10,25 @@ backend/.env
 npm-debug.log
 backend/npm-debug.log
 
-# Build outputs
-dist/
-build/
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # IDE files
 .vscode/
 .idea/
 
-# Misc
-.DS_Store 
+# Build outputs
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp 

@@ -1,30 +1,29 @@
-require('dotenv').config({ path: '.env' });
+require('dotenv').config({ path: '.env' }); // Explicitly specify path
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
-const crypto = require('crypto');
 
 const app = express();
 
 // Middleware
-app.use(cors({
-    origin: ['http://localhost:3000', 'https://your-vercel-domain.vercel.app'],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors()); // Enable CORS for all routes
 app.use(bodyParser.json());
 
-// Serve static files
+// Serve static files from the frontend directory
 app.use(express.static(path.join(__dirname, '../')));
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 
-    'mongodb+srv://admin:admin@ticketcluster.5od73.mongodb.net/?retryWrites=true&w=majority&appName=TicketCluster';
+const MONGODB_URI = process.env.MONGODB_URI;
 
-console.log('Connecting to MongoDB with URI:', MONGODB_URI);
+// Validate MongoDB URI
+if (!MONGODB_URI) {
+    console.error('ERROR: MongoDB URI is not defined in .env file');
+    process.exit(1);
+}
 
+// Improved MongoDB Connection
 mongoose.connect(MONGODB_URI, { 
     useNewUrlParser: true, 
     useUnifiedTopology: true 
@@ -37,12 +36,14 @@ mongoose.connect(MONGODB_URI, {
     process.exit(1);
 });
 
-// Booking Schema
+// Booking Schema with more robust validation
 const BookingSchema = new mongoose.Schema({
     email: { 
         type: String, 
         required: true, 
-        trim: true 
+        trim: true, 
+        lowercase: true,
+        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
     },
     event: { 
         type: String, 
@@ -84,21 +85,13 @@ const BookingSchema = new mongoose.Schema({
 
 const Booking = mongoose.model('Booking', BookingSchema);
 
-// Booking Endpoint
+// Save Booking Endpoint with improved error handling
 app.post('/save-booking', async (req, res) => {
     try {
         const bookingData = req.body;
         
-        // Validate Required Fields
-        const requiredFields = ['email', 'event', 'tickets', 'paymentId'];
-        for (let field of requiredFields) {
-            if (!bookingData[field]) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: `Missing required field: ${field}` 
-                });
-            }
-        }
+        // Calculate total amount 
+        bookingData.totalAmount = bookingData.tickets * bookingData.price;
 
         const newBooking = new Booking(bookingData);
         await newBooking.save();
@@ -110,15 +103,24 @@ app.post('/save-booking', async (req, res) => {
         });
     } catch (error) {
         console.error('Booking Save Error:', error);
+        
+        // Mongoose validation error handling
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ 
+                success: false, 
+                message: Object.values(error.errors).map(err => err.message)
+            });
+        }
+        
         res.status(500).json({ 
             success: false, 
-            message: 'Booking processing failed',
-            error: error.toString()
+            message: 'Internal server error',
+            error: error.message 
         });
     }
 });
 
-// Root route
+// Root route to serve index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../index.html'));
 });
@@ -131,7 +133,27 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+    await mongoose.connection.close();
+    server.close(() => {
+        console.log('Server and MongoDB connection closed');
+        process.exit(0);
+    });
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 }); 
